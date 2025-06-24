@@ -234,7 +234,7 @@ def get_genius_access_token():
     except:
         # If no secrets file exists, you can temporarily hardcode it here for testing
         # IMPORTANT: Don't commit this to version control!
-        return "yxid_vfuQGM5grmTY6ZKwcsEumbyciFy2YGv4rTwwiBf1ZMSg1HIlUhyNwwQRzO2"
+        return 'api key not found'
 
 def search_song(song_title, artist="Taylor Swift"):
     """Search for a song on Genius API"""
