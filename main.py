@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import requests
 import re
@@ -228,13 +229,14 @@ def get_genius_access_token():
     2. Create a new API client
     3. Copy your access token
     """
+    GENIUS_ACCESS_TOKEN =  os.getenv("GENIUS_ACCESS_TOKEN")
     # Try to get from secrets first, fallback to empty string
     try:
-        return st.secrets.get("GENIUS_ACCESS_TOKEN", "")
+        return GENIUS_ACCESS_TOKEN 
     except:
         # If no secrets file exists, you can temporarily hardcode it here for testing
         # IMPORTANT: Don't commit this to version control!
-        return 'api key not found'
+        return ''
 
 def search_song(song_title, artist="Taylor Swift"):
     """Search for a song on Genius API"""
