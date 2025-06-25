@@ -501,7 +501,7 @@ def main():
                 with col1:
                     st.markdown("""
                     <div class='floating'>
-                        <h3 style='text-align: center; font-family: "Playfair Display", serif; color: #8B5A83;'>
+                        <h3 style='text-align: center; font-family: "Playfair Display", serif; color: black;'>
                             📝 Lyrics Information 📝
                         </h3>
                     </div>
