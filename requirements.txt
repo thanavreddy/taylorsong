@@ -5,3 +5,4 @@ wordcloud
 matplotlib
 Pillow
 beautifulsoup4
+dotenv
