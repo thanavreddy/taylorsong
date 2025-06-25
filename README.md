@@ -46,9 +46,8 @@ Make sure to have Python 3.7+
 
 ### 4. Add Token to Streamlit Secrets
 
-Create a `.streamlit/secrets.toml` file and add your token:
-
-```toml
+Create a `.env` file and add your token:(or use the one provided)
+```.env
 GENIUS_ACCESS_TOKEN = "your_token_here"
 ```
 
