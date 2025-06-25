@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import io
 import base64
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure Streamlit page
 st.set_page_config(
@@ -20,12 +24,13 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&display=swap');
     .stTextInput input {
-    color: #000 !important;
-}
-.stTextInput input::placeholder {
-    color: #000 !important;
-    opacity: 0.5 !important;
-}
+        color: #000 !important;
+    }
+    .stTextInput input::placeholder {
+        color: #000 !important;
+        opacity: 0.5 !important;
+    }
+    
     /* Main background with dreamy gradient */
     .stApp {
         background: linear-gradient(135deg, 
@@ -162,7 +167,7 @@ st.markdown("""
         box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         margin: 15px 0;
         backdrop-filter: blur(10px);
-        color : black;
+        color: black;
     }
     
     /* Metric styling */
@@ -172,7 +177,7 @@ st.markdown("""
         border-radius: 15px;
         text-align: center;
         border: 1px solid #ffd1dc;
-        color:black;
+        color: black;
     }
     
     /* Heart decorations */
@@ -224,26 +229,25 @@ st.markdown("""
 
 def get_genius_access_token():
     """
-    You'll need to get your access token from Genius API:
-    1. Go to https://genius.com/api-clients
-    2. Create a new API client
-    3. Copy your access token
+    Get Genius API access token from environment variables or Streamlit secrets
     """
-    GENIUS_ACCESS_TOKEN =  os.getenv("GENIUS_ACCESS_TOKEN")
-    # Try to get from secrets first, fallback to empty string
+    # Try Streamlit secrets first (for cloud deployment)
     try:
-        return GENIUS_ACCESS_TOKEN 
+        return st.secrets["GENIUS_ACCESS_TOKEN"]
     except:
-        # If no secrets file exists, you can temporarily hardcode it here for testing
-        # IMPORTANT: Don't commit this to version control!
-        return ''
+        # Fallback to environment variable (for local development)
+        token = os.getenv("GENIUS_ACCESS_TOKEN")
+        if token:
+            return token
+        else:
+            return None
 
 def search_song(song_title, artist="Taylor Swift"):
     """Search for a song on Genius API"""
     access_token = get_genius_access_token()
     
     if not access_token:
-        st.error("Please add your Genius API access token to Streamlit secrets!")
+        st.error("Please add your Genius API access token!")
         return None
     
     base_url = "https://api.genius.com"
@@ -269,9 +273,9 @@ def search_song(song_title, artist="Taylor Swift"):
         st.error(f"Error searching for song: {e}")
         return None
 
-def get_song_lyrics(song_title, artist="Taylor Swift"):
+def get_song_lyrics_url(song_title, artist="Taylor Swift"):
     """
-    Fetch lyrics using lyricsgenius library
+    Get the Genius URL for song lyrics (since we can't scrape full lyrics due to copyright)
     """
     access_token = get_genius_access_token()
     
@@ -279,30 +283,47 @@ def get_song_lyrics(song_title, artist="Taylor Swift"):
         return "No API token available. Please add your Genius API access token."
     
     try:
-        import lyricsgenius
-        
-        # Initialize the Genius API client
-        genius = lyricsgenius.Genius(access_token)
-        genius.verbose = False  # Turn off status messages
-        genius.remove_section_headers = True  # Clean up the lyrics
-        
         # Search for the song
-        song = genius.search_song(song_title, artist)
+        song_data = search_song(song_title, artist)
         
-        if song:
-            return song.lyrics
+        if song_data:
+            song_url = song_data.get('url', '')
+            if song_url:
+                return f"View full lyrics at: {song_url}"
+            else:
+                return f"Song found but no URL available."
         else:
             return f"Lyrics for '{song_title}' by {artist} not found."
             
-    except ImportError:
-        return """lyricsgenius library not installed. 
-        
-Please install it using: pip install lyricsgenius
-        
-Then restart your Streamlit app."""
-        
     except Exception as e:
-        return f"Error fetching lyrics: {str(e)}"
+        return f"Error fetching lyrics URL: {str(e)}"
+
+def get_sample_lyrics_for_wordcloud(song_title):
+    """
+    Generate sample word cloud based on common themes in Taylor Swift songs
+    This is a demo function since we can't use actual copyrighted lyrics
+    """
+    # Common themes and words associated with different Taylor Swift songs/eras
+    song_themes = {
+        'love story': 'love story romeo juliet princess dress marry dreams forever young beautiful tale',
+        'shake it off': 'shake off haters dancers fakers players heartbreakers move dance beat music',
+        'blank space': 'blank space write name love game crazy magic madness cherry lips',
+        'anti-hero': 'anti hero problems midnight thoughts anxiety dreams reality perspective',
+        'enchanted': 'enchanted tonight sparks fly wonderstruck blushing magic spell dreams',
+        'all too well': 'remember autumn leaves scarf wind dancing kitchen happiness memories',
+        'cardigan': 'cardigan sleeves heartbeat teenage dreams vintage comfort stars dancing',
+        'willow': 'willow trees water flowing dreams magic golden hour dancing life',
+        'lover': 'lover daylight golden afternoon dancing kitchen promises forever home',
+        'delicate': 'delicate reputation mystery hands diving deep water dancing silence'
+    }
+    
+    # Find matching theme or use default
+    for key, theme in song_themes.items():
+        if key in song_title.lower():
+            return theme
+    
+    # Default Taylor Swift themes
+    return 'love music dreams dancing heartbreak memories golden magic forever young beautiful story'
 
 def clean_lyrics_for_wordcloud(lyrics):
     """Clean lyrics text for word cloud generation"""
@@ -404,8 +425,8 @@ def main():
             <p style='font-family: "Poppins", sans-serif; margin: 0;'>
                 1. 🎵 Enter a Taylor Swift song title<br>
                 2. ✨ Click 'Analyze Lyrics'<br>
-                3. 💜 View the enchanted lyrics<br>
-                4. ☁️ Explore the magical word cloud<br>
+                3. 💜 View the song information<br>
+                4. ☁️ Explore the themed word cloud<br>
                 5. 🌈 Switch eras for different vibes
             </p>
         </div>
@@ -471,44 +492,44 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Get lyrics using the song title
-                lyrics = get_song_lyrics(song_data['title'])
+                # Get lyrics URL
+                lyrics_info = get_song_lyrics_url(song_data['title'])
                 
-                # Create two columns for lyrics and word cloud
+                # Create two columns for lyrics info and word cloud
                 col1, col2 = st.columns([1, 1])
                 
                 with col1:
                     st.markdown("""
                     <div class='floating'>
                         <h3 style='text-align: center; font-family: "Playfair Display", serif; color: #8B5A83;'>
-                            📝 Enchanted Lyrics 📝
+                            📝 Lyrics Information 📝
                         </h3>
                     </div>
                     """, unsafe_allow_html=True)
                     
                     st.markdown("<div class='lyrics-container'>", unsafe_allow_html=True)
-                    st.text_area(
-                        "",
-                        value=lyrics,
-                        height=400,
-                        label_visibility="collapsed"
-                    )
+                    st.write(lyrics_info)
+                    
+                    # Show song URL if available
+                    if song_data.get('url'):
+                        st.markdown(f"**🔗 Full lyrics:** [View on Genius]({song_data['url']})")
+                    
                     st.markdown("</div>", unsafe_allow_html=True)
                 
                 with col2:
                     st.markdown(f"""
                     <div class='floating'>
                         <h3 style='text-align: center; font-family: "Playfair Display", serif; color: #8B5A83;'>
-                            ☁️ {selected_era} Word Cloud ☁️
+                            ☁️ {selected_era} Themed Cloud ☁️
                         </h3>
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # Clean lyrics for word cloud
-                    cleaned_text = clean_lyrics_for_wordcloud(lyrics)
+                    # Generate themed word cloud based on song
+                    themed_text = get_sample_lyrics_for_wordcloud(song_title)
                     
-                    if cleaned_text:
-                        wordcloud = generate_wordcloud(cleaned_text, colormap)
+                    if themed_text:
+                        wordcloud = generate_wordcloud(themed_text, colormap)
                         
                         if wordcloud:
                             st.markdown("<div class='taylor-card'>", unsafe_allow_html=True)
@@ -519,10 +540,12 @@ def main():
                             st.pyplot(fig)
                             plt.close()
                             st.markdown("</div>", unsafe_allow_html=True)
+                            
+                            st.info("💡 This word cloud shows themes commonly associated with this song!")
                         else:
-                            st.warning("✨ The magic couldn't create a word cloud from these lyrics. ✨")
+                            st.warning("✨ The magic couldn't create a word cloud. ✨")
                     else:
-                        st.warning("✨ Not enough magical words to create a meaningful cloud. ✨")
+                        st.warning("✨ No themes found for this song. ✨")
                 
                 # Song info with magical styling
                 with st.expander("🎵 Song Information & Magic Details"):
@@ -591,13 +614,24 @@ def main():
             <p style='font-family: "Poppins", sans-serif; color: #8B5A83;'>
                 To unlock the full magic of this app, you need to connect to the Genius API:
             </p>
+            
+            <h4 style='color: #8B5A83;'>For Local Development:</h4>
             <ol style='font-family: "Poppins", sans-serif; color: #8B5A83;'>
                 <li>✨ Get a free Genius API access token from <a href="https://genius.com/api-clients" target="_blank">genius.com/api-clients</a></li>
-                <li>🔮 Add it to your Streamlit secrets as <code>GENIUS_ACCESS_TOKEN</code></li>
-                <li>💜 Install additional dependencies: <code>pip install lyricsgenius beautifulsoup4</code></li>
+                <li>🔮 Create a <code>.env</code> file in your project directory</li>
+                <li>💜 Add: <code>GENIUS_ACCESS_TOKEN=your_token_here</code></li>
+                <li>🌟 Install: <code>pip install python-dotenv</code></li>
             </ol>
+            
+            <h4 style='color: #8B5A83;'>For Streamlit Community Cloud:</h4>
+            <ol style='font-family: "Poppins", sans-serif; color: #8B5A83;'>
+                <li>✨ In your Streamlit Cloud app settings</li>
+                <li>🔮 Go to "Secrets" section</li>
+                <li>💜 Add: <code>GENIUS_ACCESS_TOKEN = "your_token_here"</code></li>
+            </ol>
+            
             <p style='font-family: "Poppins", sans-serif; color: #8B5A83; text-align: center; font-style: italic;'>
-                The current version shows the magical structure with demo data. ✨
+                The current version shows themed word clouds as a demo. ✨
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -609,7 +643,7 @@ def main():
             ✨ Made with 💜 for all the Swifties out there ✨
         </p>
         <p style='font-family: "Poppins", sans-serif; color: #8B5A83; font-size: 0.9rem;'>
-            "And you call me up again just to break me like a promise" 🎵
+            "Long story short, it was a bad time" 🎵
         </p>
     </div>
     """, unsafe_allow_html=True)
